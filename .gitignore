@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# exclude all files named ".env" including all subfolders
+**/.env
+
 # Distribution / packaging
 .Python
 build/
