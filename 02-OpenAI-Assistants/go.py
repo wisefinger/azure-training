@@ -2,49 +2,58 @@ import os
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from openai import AzureOpenAI
 from dotenv import load_dotenv
-import os
 
-token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
-
-# 1. Load the environment variables from .env
+print("Loading environment variables...")
+# Load the environment variables from .env
 load_dotenv()
 
-# Initialize the AzureOpenAI client
+# Fetch environment variables
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-print(AZURE_OPENAI_ENDPOINT)
-client = AzureOpenAI(
-    azure_ad_token_provider=token_provider,
-    azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
-    api_version="2024-05-01-preview",
-)
+API_KEY = os.getenv("API_KEY")
+DEPLOYMENT_NAME = os.getenv("DEPLOYMENT_NAME")  # Ensure this is correct
 
-""" # Create an assistant
-assistant = client.beta.assistants.create(
-    name="Math Assist",
-    instructions="You are an AI assistant that can write code to help answer math questions.",
-    tools=[{"type": "code_interpreter"}],
-    model="gpt-4-1106-preview" # You must replace this value with the deployment name for your model.
-)
+if not AZURE_OPENAI_ENDPOINT:
+    raise ValueError("AZURE_OPENAI_ENDPOINT environment variable is not set.")
+if not API_KEY:
+    raise ValueError("API_KEY environment variable is not set.")
 
-# Create a thread
-thread = client.beta.threads.create()
+# Initialize the token provider
+try:
+    token_provider = get_bearer_token_provider(
+        DefaultAzureCredential(),
+        "https://cognitiveservices.azure.com/.default"
+    )
+except Exception as e:
+    raise RuntimeError(f"Failed to initialize token provider: {e}")
 
-# Add a user question to the thread
-message = client.beta.threads.messages.create(
-    thread_id=thread.id,
-    role="user",
-    content="I need to solve the equation `3x + 11 = 14`. Can you help me?"
-)
+# Initialize AzureOpenAI client
+try:
+    client = AzureOpenAI(
+        azure_ad_token_provider=token_provider,
+        azure_endpoint=AZURE_OPENAI_ENDPOINT,
+        api_version="2024-10-21",  # Ensure this matches your API version
+    )
+except Exception as e:
+    raise RuntimeError(f"Failed to initialize AzureOpenAI client: {e}")
 
-# Run the thread and poll for the result
-run = client.beta.threads.runs.create_and_poll(
-    thread_id=thread.id,
-    assistant_id=assistant.id,
-    instructions="Please address the user as Jane Doe. The user has a premium account.",
-)
+# List models to verify setup
+try:
+  available_models = client.models.list()
+  #loop through the models and print the name and id
+  for model in available_models:
+    print(f"Model Name:  {model.id}")
 
-print("Run completed with status: " + run.status)
+except Exception as e:
+    raise RuntimeError(f"Error fetching models: {e}")
 
-if run.status == "completed":
-    messages = client.beta.threads.messages.list(thread_id=thread.id)
-    print(messages.to_json(indent=2)) """
+# Create an assistant
+try:
+    assistant = client.beta.assistants.create(
+        name="Math Assist",
+        instructions="You are an AI assistant that can write code to help answer math questions.",
+        tools=[{"type": "code_interpreter"}],
+        model=DEPLOYMENT_NAME  # Ensure this matches your deployed model
+    )
+    print("Assistant created successfully.")
+except Exception as e:
+    raise RuntimeError(f"Failed to create assistant: {e}")
