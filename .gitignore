@@ -8,6 +8,9 @@ __pycache__/
 
 # exclude all files named ".env" including all subfolders
 **/.env
+# exclude all files with the extention MOV and mp4 including all subfolders
+**/*.MOV
+**/*.mp4
 
 # Distribution / packaging
 .Python
